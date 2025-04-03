@@ -1,0 +1,154 @@
+### App Module Configuration
+
+```typescript
+import { NgModule } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
+import { AppComponent } from './app.component';
+import { DialogService } from './dialog.service';
+import { DialogComponent } from './dialog/dialog.component';
+import { ComponentA } from './component-a/component-a.component';
+import { ComponentB } from './component-b/component-b.component';
+
+@NgModule({
+  declarations: [
+    AppComponent,
+    DialogComponent,
+    ComponentA,
+    ComponentB
+  ],
+  imports: [
+    BrowserModule
+  ],
+  providers: [DialogService],
+  bootstrap: [AppComponent]
+})
+export class AppModule { }
+```
+
+### 1. **Updating the Dialog Service**
+
+```typescript
+// src/app/dialog.service.ts
+import { Injectable } from '@angular/core';
+import { Subject } from 'rxjs';
+
+export interface DialogButton {
+  text: string;
+  action: () => void;
+}
+
+export interface DialogData {
+  message: string;
+  buttons: DialogButton[];
+}
+
+@Injectable({ providedIn: 'root' })
+export class DialogService {
+  private dialogSubject = new Subject<DialogData>();
+  dialogState$ = this.dialogSubject.asObservable();
+
+  openDialog(data: DialogData) {
+    this.dialogSubject.next(data);
+  }
+}
+```
+
+### 2. **Updating the Dialog Component**
+
+```typescript
+// src/app/dialog/dialog.component.ts
+import { Component, OnInit } from '@angular/core';
+import { DialogService, DialogData, DialogButton } from '../dialog.service';
+
+@Component({
+  selector: 'app-dialog',
+  template: `
+    <div *ngIf="showDialog" class="dialog-overlay">
+      <div class="dialog-box">
+        <p>{{ data?.message }}</p>
+        <div *ngFor="let button of data?.buttons">
+          <button (click)="button.action()">{{ button.text }}</button>
+        </div>
+      </div>
+    </div>
+  `,
+  styleUrls: ['./dialog.component.css']
+})
+export class DialogComponent implements OnInit {
+  showDialog = false;
+  data!: DialogData;
+
+  constructor(private dialogService: DialogService) {}
+
+  ngOnInit() {
+    this.dialogService.dialogState$.subscribe(data => {
+      this.data = data;
+      this.showDialog = true;
+    });
+  }
+
+  closeDialog() {
+    this.showDialog = false;
+  }
+}
+```
+
+### 3. **Updating Component A & B**
+
+```typescript
+// src/app/component-a/component-a.component.ts
+import { Component } from '@angular/core';
+import { DialogService } from '../dialog.service';
+
+@Component({
+  selector: 'app-component-a',
+  template: `<button (click)="showDialog()">Open Dialog from Component A</button>`
+})
+export class ComponentA {
+  constructor(private dialogService: DialogService) {}
+
+  showDialog() {
+    this.dialogService.openDialog({
+      message: 'Hello from Component A!',
+      buttons: [
+        { text: 'Ok', action: () => alert('Ok Clicked from A') },
+        { text: 'Cancel', action: () => alert('Cancel Clicked from A') }
+      ]
+    });
+  }
+}
+
+// src/app/component-b/component-b.component.ts
+import { Component } from '@angular/core';
+import { DialogService } from '../dialog.service';
+
+@Component({
+  selector: 'app-component-b',
+  template: `<button (click)="showDialog()">Open Dialog from Component B</button>`
+})
+export class ComponentB {
+  constructor(private dialogService: DialogService) {}
+
+  showDialog() {
+    this.dialogService.openDialog({
+      message: 'Greetings from Component B!',
+      buttons: [
+        { text: 'Yes', action: () => alert('Yes Clicked from B') },
+        { text: 'No', action: () => alert('No Clicked from B') },
+        { text: 'Maybe', action: () => alert('Maybe Clicked from B') }
+      ]
+    });
+  }
+}
+```
+
+### 4. **Using the Components**
+
+```html
+<!-- src/app/app.component.html -->
+<app-dialog></app-dialog>
+<app-component-a></app-component-a>
+<app-component-b></app-component-b>
+```
+
+Now, the components can pass **multiple buttons** with different actions to the dialog service. This is achieved by defining an array of buttons with their labels and action handlers. Would you like me to show you how to **make these buttons trigger Observables or Promises instead of just calling functions?**
